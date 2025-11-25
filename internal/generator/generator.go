@@ -27,6 +27,18 @@ func toTitle(s string) string {
 	return strings.Join(parts, "")
 }
 
+// displayName strips module prefix (anything before first underscore) and converts to title case for user-facing messages
+func displayName(s string) string {
+	// Strip everything before first underscore (e.g., "structure_project" -> "project")
+	name := s
+	if idx := strings.Index(s, "_"); idx != -1 {
+		name = s[idx+1:]
+	}
+
+	// Convert to title case
+	return toTitle(name)
+}
+
 // Generator orchestrates the provider code generation
 type Generator struct {
 	config *config.Config
@@ -125,7 +137,8 @@ func (g *Generator) createDirectoryStructure() error {
 // generateProvider generates the main provider file
 func (g *Generator) generateProvider() error {
 	tmpl, err := template.New("provider.go.tmpl").Funcs(template.FuncMap{
-		"title": toTitle,
+		"title":       toTitle,
+		"displayName": displayName,
 	}).ParseFS(templates, "templates/provider.go.tmpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse provider template: %w", err)
@@ -150,7 +163,8 @@ func (g *Generator) generateProvider() error {
 // generateResource generates a resource file
 func (g *Generator) generateResource(resource *config.Resource) error {
 	tmpl, err := template.New("resource.go.tmpl").Funcs(template.FuncMap{
-		"title": toTitle,
+		"title":       toTitle,
+		"displayName": displayName,
 	}).ParseFS(templates, "templates/resource.go.tmpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse resource template: %w", err)
@@ -207,7 +221,8 @@ func (g *Generator) generateResource(resource *config.Resource) error {
 // generateDataSource generates a data source file
 func (g *Generator) generateDataSource(dataSource *config.DataSource) error {
 	tmpl, err := template.New("datasource.go.tmpl").Funcs(template.FuncMap{
-		"title": toTitle,
+		"title":       toTitle,
+		"displayName": displayName,
 	}).ParseFS(templates, "templates/datasource.go.tmpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse datasource template: %w", err)
@@ -282,7 +297,8 @@ func (g *Generator) generateDataSource(dataSource *config.DataSource) error {
 // generateDataSourceTests creates the datasource test file
 func (g *Generator) generateDataSourceTests(dataSource *config.DataSource, templateData map[string]interface{}) error {
 	tmpl, err := template.New("datasource_test.go.tmpl").Funcs(template.FuncMap{
-		"title": toTitle,
+		"title":       toTitle,
+		"displayName": displayName,
 	}).ParseFS(templates, "templates/datasource_test.go.tmpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse datasource test template: %w", err)

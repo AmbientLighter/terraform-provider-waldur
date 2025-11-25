@@ -108,7 +108,7 @@ func (d *{{ .Name | title }}DataSource) Read(ctx context.Context, req datasource
 		err := d.client.GetByUUID(ctx, retrievePath, data.UUID.ValueString(), &result)
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Unable to Read {{ .Name | title }}",
+				"Unable to Read {{ .Name | displayName }}",
 				"An error occurred while reading the {{ .Name }} by UUID: "+err.Error(),
 			)
 			return
@@ -142,7 +142,7 @@ func (d *{{ .Name | title }}DataSource) Read(ctx context.Context, req datasource
 		err := d.client.ListWithFilter(ctx, listPath, filters, &results)
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Unable to List {{ .Name | title }}",
+				"Unable to List {{ .Name | displayName }}",
 				"An error occurred while filtering {{ .Name }} by name: "+err.Error(),
 			)
 			return
@@ -151,7 +151,7 @@ func (d *{{ .Name | title }}DataSource) Read(ctx context.Context, req datasource
 		// Check results
 		if len(results) == 0 {
 			resp.Diagnostics.AddError(
-				"{{ .Name | title }} Not Found",
+				"{{ .Name | displayName }} Not Found",
 				"No {{ .Name }} found with name: "+data.Name.ValueString(),
 			)
 			return
@@ -159,7 +159,7 @@ func (d *{{ .Name | title }}DataSource) Read(ctx context.Context, req datasource
 		
 		if len(results) > 1 {
 			resp.Diagnostics.AddError(
-				"Multiple {{ .Name | title }}s Found",
+				"Multiple {{ .Name | displayName }}s Found",
 				fmt.Sprintf("Found %d {{ .Name }}s with name '%s'. Please use a more specific filter or lookup by UUID.", len(results), data.Name.ValueString()),
 			)
 			return

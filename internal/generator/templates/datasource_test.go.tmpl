@@ -120,7 +120,7 @@ func TestAcc{{ .Name | title }}DataSource_NotFound(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAcc{{ .Name | title }}DataSourceConfig_ByName(server.URL, "Nonexistent"),
-				ExpectError: regexp.MustCompile("No {{ .Name }} found"),
+				ExpectError: regexp.MustCompile("{{ .Name | displayName }} Not Found"),
 			},
 		},
 	})
@@ -147,7 +147,7 @@ func TestAcc{{ .Name | title }}DataSource_MultipleResults(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAcc{{ .Name | title }}DataSourceConfig_ByName(server.URL, "Ambiguous"),
-				ExpectError: regexp.MustCompile("Multiple {{ .Name | title }}s Found"),
+				ExpectError: regexp.MustCompile("Multiple {{ .Name | displayName }}s Found"),
 			},
 		},
 	})
