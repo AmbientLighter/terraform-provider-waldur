@@ -48,10 +48,10 @@ func TestAcc{{ .Name | title }}Resource_Basic(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte(fmt.Sprintf(`{
+				"uuid": "%s"{{- if gt (len .ModelFields) 0 }},{{- end }}
 				{{- range $i, $field := .ModelFields }}
-				{{- if eq $field.Name "uuid" }}
-				"{{ $field.Name }}": "%s"{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if $field.ReadOnly }}
+				{{- if ne $field.Name "uuid" }}
+				{{- if $field.ReadOnly }}
 				{{- if eq $field.Type "string" }}
 				"{{ $field.Name }}": "dummy-{{ $field.Name }}"{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
 				{{- else if eq $field.Type "integer" }}
@@ -69,11 +69,11 @@ func TestAcc{{ .Name | title }}Resource_Basic(t *testing.T) {
 				{{- end }}
 				{{- end }}
 				{{- end }}
+				{{- end }}
 			}`, 
-			{{- range .ModelFields }}
-			{{- if eq .Name "uuid" }}
 			uuid,
-			{{- else if not .ReadOnly }}
+			{{- range .ModelFields }}
+			{{- if and (ne .Name "uuid") (not .ReadOnly) }}
 			{{ .Name }},
 			{{- end }}
 			{{- end }}
@@ -84,10 +84,9 @@ func TestAcc{{ .Name | title }}Resource_Basic(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(fmt.Sprintf(`{
+				"uuid": "%s"{{- if gt (len .ModelFields) 0 }},{{- end }}
 				{{- range $i, $field := .ModelFields }}
-				{{- if eq $field.Name "uuid" }}
-				"{{ $field.Name }}": "%s"{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if $field.ReadOnly }}
+				{{- if $field.ReadOnly }}
 				{{- if eq $field.Type "string" }}
 				"{{ $field.Name }}": "dummy-{{ $field.Name }}"{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
 				{{- else if eq $field.Type "integer" }}
@@ -106,10 +105,9 @@ func TestAcc{{ .Name | title }}Resource_Basic(t *testing.T) {
 				{{- end }}
 				{{- end }}
 			}`, 
-			{{- range .ModelFields }}
-			{{- if eq .Name "uuid" }}
 			uuid,
-			{{- else if not .ReadOnly }}
+			{{- range .ModelFields }}
+			{{- if not .ReadOnly }}
 			{{ .Name }},
 			{{- end }}
 			{{- end }}

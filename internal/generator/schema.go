@@ -41,6 +41,11 @@ func ExtractFields(schemaRef *openapi3.SchemaRef) ([]FieldInfo, error) {
 	sort.Strings(propNames)
 
 	for _, propName := range propNames {
+		// Skip uuid field as it's hard-coded in templates with tfsdk:"id"
+		if propName == "uuid" {
+			continue
+		}
+
 		propSchema := schema.Properties[propName]
 		if propSchema == nil || propSchema.Value == nil {
 			continue
