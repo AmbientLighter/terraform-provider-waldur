@@ -40,21 +40,10 @@ func TestAcc{{ .Name | title }}Resource_Basic(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Request: %s %s", r.Method, r.URL.Path)
 		
-		{{- if .APIPaths.Create }}
-		createPath := "{{ .APIPaths.Create }}"
-		{{- else }}
-		createPath := "/api/{{ .Name }}s/"
-		{{- end }}
-		
-		{{- if .APIPaths.Retrieve }}
-		retrievePathTemplate := "{{ .APIPaths.Retrieve }}"
-		retrievePath := strings.Replace(retrievePathTemplate, "{uuid}", uuid, 1)
-		{{- else }}
-		retrievePath := "/api/{{ .Name }}s/" + uuid + "/"
-		{{- end }}
+		retrievePath := strings.Replace("{{ .APIPaths.Retrieve }}", "{uuid}", uuid, 1)
 		
 		switch {
-		case r.Method == "POST" && r.URL.Path == createPath:
+		case r.Method == "POST" && r.URL.Path == "{{ .APIPaths.Create }}":
 			// Create operation
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
