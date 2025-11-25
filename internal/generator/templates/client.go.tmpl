@@ -185,6 +185,19 @@ func (c *Client) List(ctx context.Context, path string, result interface{}) erro
 	return c.Get(ctx, path, result)
 }
 
+// ListWithFilter performs a GET request with query parameters for filtering
+func (c *Client) ListWithFilter(ctx context.Context, path string, filters map[string]string, result interface{}) error {
+	// Build query string from filters
+	if len(filters) > 0 {
+		query := url.Values{}
+		for key, value := range filters {
+			query.Add(key, value)
+		}
+		path = path + "?" + query.Encode()
+	}
+	return c.Get(ctx, path, result)
+}
+
 // GetByUUID retrieves a single resource by UUID
 func (c *Client) GetByUUID(ctx context.Context, path string, uuid string, result interface{}) error {
 	// Replace {uuid} placeholder in path, or append if not present

@@ -236,10 +236,23 @@ func (g *Generator) generateDataSource(dataSource *config.DataSource) error {
 		apiPath = listPath
 	}
 
+	// Extract query parameters from list operation
+	queryParams := make(map[string]string) // param name -> description
+	if operation, _, _, err := g.parser.GetOperation(ops.List); err == nil {
+		for _, param := range operation.Parameters {
+			if param.Value != nil && param.Value.In == "query" {
+				paramName := param.Value.Name
+				description := param.Value.Description
+				queryParams[paramName] = description
+			}
+		}
+	}
+
 	data := map[string]interface{}{
-		"Name":       dataSource.Name,
-		"Operations": ops,
-		"APIPath":    apiPath,
+		"Name":        dataSource.Name,
+		"Operations":  ops,
+		"APIPath":     apiPath,
+		"QueryParams": queryParams,
 	}
 
 	return tmpl.Execute(f, data)
@@ -294,7 +307,29 @@ func (g *Generator) generateClient() error {
 	}
 	defer f.Close()
 
-	// Client template doesn't need any data
+	if err := tmpl.Execute(f, nil); err != nil {
+		return err
+	}
+
+	// Also generate client tests
+	return g.generateClientTests()
+}
+
+// generateClientTests creates the client_test.go file
+func (g *Generator) generateClientTests() error {
+	tmpl, err := template.ParseFS(templates, "templates/client_test.go.tmpl")
+	if err != nil {
+		return fmt.Errorf("failed to parse client test template: %w", err)
+	}
+
+	outputPath := filepath.Join(g.config.Generator.OutputDir, "internal", "client", "client_test.go")
+	f, err := os.Create(outputPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	// Client test template doesn't need any data
 	return tmpl.Execute(f, nil)
 }
 

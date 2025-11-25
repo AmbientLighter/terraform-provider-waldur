@@ -12,6 +12,19 @@ paths:
     get:
       operationId: projects_list
       summary: List all projects
+      parameters:
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter projects by name (partial match)
+        - name: name_exact
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter projects by exact name match
       responses:
         '200':
           description: List of projects
