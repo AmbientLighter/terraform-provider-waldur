@@ -4,6 +4,7 @@ import (
 	"context"
     "strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -46,7 +47,10 @@ func (r *{{ .Name | title }}Resource) Schema(ctx context.Context, req resource.S
 				MarkdownDescription: "Resource UUID (used as Terraform ID)",
 			},
 			{{- range .ModelFields }}
-			"{{ .TFSDKName }}": schema.{{ if eq .Type "string" }}String{{ else if eq .Type "integer" }}Int64{{ else if eq .Type "boolean" }}Bool{{ else if eq .Type "number" }}Float64{{ end }}Attribute{
+			"{{ .TFSDKName }}": {{- if eq .GoType "types.List" }}schema.ListAttribute{
+				{{- if eq .ItemType "string" }}
+				ElementType: types.StringType,
+				{{- end }}
 				{{- if .ReadOnly }}
 				Computed:            true,
 				{{- else if .Required }}
@@ -57,6 +61,27 @@ func (r *{{ .Name | title }}Resource) Schema(ctx context.Context, req resource.S
 				{{- end }}
 				MarkdownDescription: "{{ .Description }}",
 			},
+			{{- else if eq .GoType "types.Object" }}schema.ObjectAttribute{
+				Computed: true,
+				AttributeTypes: map[string]attr.Type{
+					{{- range .Properties }}
+					"{{ .TFSDKName }}": {{ .GoType }}Type,
+					{{- end }}
+				},
+				MarkdownDescription: "{{ .Description }}",
+			},
+			{{- else }}schema.{{ if eq .Type "string" }}String{{ else if eq .Type "integer" }}Int64{{ else if eq .Type "boolean" }}Bool{{ else if eq .Type "number" }}Float64{{ end }}Attribute{
+				{{- if .ReadOnly }}
+				Computed:            true,
+				{{- else if .Required }}
+				Required:            true,
+				{{- else }}
+				Optional:            true,
+				Computed:            true,
+				{{- end }}
+				MarkdownDescription: "{{ .Description }}",
+			},
+			{{- end }}
 			{{- end }}
 		},
 	}

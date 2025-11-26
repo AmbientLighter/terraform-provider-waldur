@@ -160,12 +160,27 @@ func (g *Generator) generateProvider() error {
 	return tmpl.Execute(f, data)
 }
 
-// generateResource generates a resource file
-func (g *Generator) generateResource(resource *config.Resource) error {
-	tmpl, err := template.New("resource.go.tmpl").Funcs(template.FuncMap{
+// getFuncMap returns the common template functions
+func (g *Generator) getFuncMap() template.FuncMap {
+	return template.FuncMap{
 		"title":       toTitle,
 		"displayName": displayName,
-	}).ParseFS(templates, "templates/shared.tmpl", "templates/resource.go.tmpl")
+		"len": func(v interface{}) int {
+			// Handle different types if needed, for now assume []FieldInfo
+			if fields, ok := v.([]FieldInfo); ok {
+				return len(fields)
+			}
+			return 0
+		},
+		"sub": func(a, b int) int {
+			return a - b
+		},
+	}
+}
+
+// generateResource generates a resource file
+func (g *Generator) generateResource(resource *config.Resource) error {
+	tmpl, err := template.New("resource.go.tmpl").Funcs(g.getFuncMap()).ParseFS(templates, "templates/shared.tmpl", "templates/resource.go.tmpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse resource template: %w", err)
 	}
@@ -263,16 +278,7 @@ func (g *Generator) generateResource(resource *config.Resource) error {
 
 // generateResourceTests creates the resource test file
 func (g *Generator) generateResourceTests(resource *config.Resource, templateData map[string]interface{}) error {
-	tmpl, err := template.New("resource_test.go.tmpl").Funcs(template.FuncMap{
-		"title":       toTitle,
-		"displayName": displayName,
-		"len": func(v interface{}) int {
-			return len(v.([]FieldInfo))
-		},
-		"sub": func(a, b int) int {
-			return a - b
-		},
-	}).ParseFS(templates, "templates/shared.tmpl", "templates/resource_test.go.tmpl")
+	tmpl, err := template.New("resource_test.go.tmpl").Funcs(g.getFuncMap()).ParseFS(templates, "templates/shared.tmpl", "templates/resource_test.go.tmpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse resource test template: %w", err)
 	}
@@ -289,10 +295,7 @@ func (g *Generator) generateResourceTests(resource *config.Resource, templateDat
 
 // generateDataSource generates a data source file
 func (g *Generator) generateDataSource(dataSource *config.DataSource) error {
-	tmpl, err := template.New("datasource.go.tmpl").Funcs(template.FuncMap{
-		"title":       toTitle,
-		"displayName": displayName,
-	}).ParseFS(templates, "templates/shared.tmpl", "templates/datasource.go.tmpl")
+	tmpl, err := template.New("datasource.go.tmpl").Funcs(g.getFuncMap()).ParseFS(templates, "templates/shared.tmpl", "templates/datasource.go.tmpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse datasource template: %w", err)
 	}
@@ -374,10 +377,7 @@ func (g *Generator) generateDataSource(dataSource *config.DataSource) error {
 
 // generateDataSourceTests creates the datasource test file
 func (g *Generator) generateDataSourceTests(dataSource *config.DataSource, templateData map[string]interface{}) error {
-	tmpl, err := template.New("datasource_test.go.tmpl").Funcs(template.FuncMap{
-		"title":       toTitle,
-		"displayName": displayName,
-	}).ParseFS(templates, "templates/datasource_test.go.tmpl")
+	tmpl, err := template.New("datasource_test.go.tmpl").Funcs(g.getFuncMap()).ParseFS(templates, "templates/shared.tmpl", "templates/datasource_test.go.tmpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse datasource test template: %w", err)
 	}

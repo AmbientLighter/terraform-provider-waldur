@@ -19,8 +19,117 @@
 		if num, ok := val.(float64); ok {
 			data.{{ .Name | title }} = types.Float64Value(num)
 		}
+		{{- else if eq .Type "array" }}
+		{{- if eq .ItemType "string" }}
+		// List of strings
+		if arr, ok := val.([]interface{}); ok {
+			items := make([]attr.Value, 0, len(arr))
+			for _, item := range arr {
+				if str, ok := item.(string); ok {
+					items = append(items, types.StringValue(str))
+				}
+			}
+			listVal, _ := types.ListValue(types.StringType, items)
+			data.{{ .Name | title }} = listVal
+		}
+		{{- else if eq .ItemType "object" }}
+		// List of objects
+		if arr, ok := val.([]interface{}); ok {
+			items := make([]attr.Value, 0, len(arr))
+			for _, item := range arr {
+				if objMap, ok := item.(map[string]interface{}); ok {
+					attrTypes := map[string]attr.Type{
+						{{- range .ItemSchema.Properties }}
+						"{{ .TFSDKName }}": {{ .GoType }}Type,
+						{{- end }}
+					}
+					attrValues := map[string]attr.Value{
+						{{- range .ItemSchema.Properties }}
+						{{- if eq .Type "string" }}
+						"{{ .TFSDKName }}": types.StringValue(objMap["{{ .Name }}"].(string)),
+						{{- else if eq .Type "integer" }}
+						"{{ .TFSDKName }}": types.Int64Value(int64(objMap["{{ .Name }}"].(float64))),
+						{{- else if eq .Type "boolean" }}
+						"{{ .TFSDKName }}": types.BoolValue(objMap["{{ .Name }}"].(bool)),
+						{{- else if eq .Type "number" }}
+						"{{ .TFSDKName }}": types.Float64Value(objMap["{{ .Name }}"].(float64)),
+						{{- else }}
+						"{{ .TFSDKName }}": types.StringNull(),
+						{{- end }}
+						{{- end }}
+					}
+					objVal, _ := types.ObjectValue(attrTypes, attrValues)
+					items = append(items, objVal)
+				}
+			}
+			listVal, _ := types.ListValue(types.ObjectType{AttrTypes: map[string]attr.Type{
+				{{- range .ItemSchema.Properties }}
+				"{{ .TFSDKName }}": {{ .GoType }}Type,
+				{{- end }}
+			}}, items)
+			data.{{ .Name | title }} = listVal
+		}
+		{{- end }}
+		{{- else if eq .Type "object" }}
+		// Nested object
+		if objMap, ok := val.(map[string]interface{}); ok {
+			attrTypes := map[string]attr.Type{
+				{{- range .Properties }}
+				"{{ .TFSDKName }}": {{ .GoType }}Type,
+				{{- end }}
+			}
+			attrValues := map[string]attr.Value{
+				{{- range .Properties }}
+				{{- if eq .Type "string" }}
+				"{{ .TFSDKName }}": types.StringValue(objMap["{{ .Name }}"].(string)),
+				{{- else if eq .Type "integer" }}
+				"{{ .TFSDKName }}": types.Int64Value(int64(objMap["{{ .Name }}"].(float64))),
+				{{- else if eq .Type "boolean" }}
+				"{{ .TFSDKName }}": types.BoolValue(objMap["{{ .Name }}"].(bool)),
+				{{- else if eq .Type "number" }}
+				"{{ .TFSDKName }}": types.Float64Value(objMap["{{ .Name }}"].(float64)),
+				{{- else }}
+				"{{ .TFSDKName }}": types.StringNull(),
+				{{- end }}
+				{{- end }}
+			}
+			objVal, _ := types.ObjectValue(attrTypes, attrValues)
+			data.{{ .Name | title }} = objVal
+		}
 		{{- end }}
 	}
 	{{- end }}
 	{{- end }}
+{{- end }}
+
+
+{{- define "mockResponseJSON" }}
+{
+	"uuid": "%s"{{- if gt (len .ModelFields) 0 }},{{- end }}
+	{{- range $i, $field := .ModelFields }}
+	{{- if ne $field.Name "uuid" }}
+	{{- if $field.ReadOnly }}
+	{{- if eq $field.Type "string" }}
+	"{{ $field.Name }}": "dummy-{{ $field.Name }}"{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
+	{{- else if eq $field.Type "integer" }}
+	"{{ $field.Name }}": 123{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
+	{{- else if eq $field.Type "boolean" }}
+	"{{ $field.Name }}": true{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
+	{{- else if eq $field.Type "array" }}
+	{{- if eq $field.ItemType "string" }}
+	"{{ $field.Name }}": ["tag1", "tag2"]{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
+	{{- end }}
+	{{- end }}
+	{{- else }}
+	{{- if eq $field.Type "string" }}
+	"{{ $field.Name }}": "%s"{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
+	{{- else if eq $field.Type "integer" }}
+	"{{ $field.Name }}": %d{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
+	{{- else if eq $field.Type "boolean" }}
+	"{{ $field.Name }}": %t{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
+	{{- end }}
+	{{- end }}
+	{{- end }}
+	{{- end }}
+}
 {{- end }}

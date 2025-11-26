@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -46,7 +47,7 @@ func (d *{{ .Name | title }}DataSource) Schema(ctx context.Context, req datasour
 			"id": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "Resource UUID. If provided, lookup by UUID. Otherwise, use name for filtering.",
+				MarkdownDescription: "Resource UUID",
 			},
 			"name": schema.StringAttribute{
 				Optional:            true,
@@ -55,10 +56,27 @@ func (d *{{ .Name | title }}DataSource) Schema(ctx context.Context, req datasour
 			},
 			{{- range .ResponseFields }}
 			{{- if ne .Name "name" }}
-			"{{ .TFSDKName }}": schema.{{ if eq .Type "string" }}String{{ else if eq .Type "integer" }}Int64{{ else if eq .Type "boolean" }}Bool{{ else if eq .Type "number" }}Float64{{ end }}Attribute{
+			"{{ .TFSDKName }}": {{- if eq .GoType "types.List" }}schema.ListAttribute{
+				{{- if eq .ItemType "string" }}
+				ElementType: types.StringType,
+				{{- end }}
 				Computed:            true,
 				MarkdownDescription: "{{ .Description }}",
 			},
+			{{- else if eq .GoType "types.Object" }}schema.ObjectAttribute{
+				Computed: true,
+				AttributeTypes: map[string]attr.Type{
+					{{- range .Properties }}
+					"{{ .TFSDKName }}": {{ .GoType }}Type,
+					{{- end }}
+				},
+				MarkdownDescription: "{{ .Description }}",
+			},
+			{{- else }}schema.{{ if eq .Type "string" }}String{{ else if eq .Type "integer" }}Int64{{ else if eq .Type "boolean" }}Bool{{ else if eq .Type "number" }}Float64{{ end }}Attribute{
+				Computed:            true,
+				MarkdownDescription: "{{ .Description }}",
+			},
+			{{- end }}
 			{{- end }}
 			{{- end }}
 		},

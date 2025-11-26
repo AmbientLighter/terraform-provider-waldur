@@ -9,19 +9,34 @@ import (
 // FieldInfo represents information about a field extracted from OpenAPI schema
 type FieldInfo struct {
 	Name        string // JSON field name, e.g., "name"
-	Type        string // OpenAPI type: "string", "integer", "boolean", "number"
+	Type        string // OpenAPI type: "string", "integer", "boolean", "number", "array", "object"
 	Required    bool   // Whether field is in schema.Required array
 	ReadOnly    bool   // Whether field is marked readOnly in schema
 	Description string // Field description from schema
 	TFSDKName   string // Terraform SDK attribute name (same as Name for now)
-	GoType      string // Terraform Framework type: "types.String", "types.Int64", "types.Bool"
+	GoType      string // Terraform Framework type: "types.String", "types.List", "types.Object", etc.
+
+	// Complex type support
+	Enum       []string    // For enums: allowed values (only for string type)
+	ItemType   string      // For arrays: type of items ("string", "integer", "object", etc.)
+	ItemSchema *FieldInfo  // For arrays of objects: nested schema
+	Properties []FieldInfo // For nested objects: object properties
 }
 
 // ExtractFields extracts field information from an OpenAPI schema reference
-// Currently supports primitive types only: string, integer, boolean, number
+// Supports primitive types, enums, arrays (strings, objects), and nested objects
 func ExtractFields(schemaRef *openapi3.SchemaRef) ([]FieldInfo, error) {
+	return extractFieldsRecursive(schemaRef, 0, 3) // max depth: 3
+}
+
+// extractFieldsRecursive extracts field information with depth limiting
+func extractFieldsRecursive(schemaRef *openapi3.SchemaRef, depth, maxDepth int) ([]FieldInfo, error) {
 	if schemaRef == nil || schemaRef.Value == nil {
 		return nil, nil
+	}
+
+	if depth > maxDepth {
+		return nil, nil // Prevent infinite recursion
 	}
 
 	schema := schemaRef.Value
@@ -52,14 +67,7 @@ func ExtractFields(schemaRef *openapi3.SchemaRef) ([]FieldInfo, error) {
 		}
 
 		prop := propSchema.Value
-
-		// Get the type - openapi3 uses Types which can have multiple types
 		typeStr := getSchemaType(prop)
-
-		// Only handle primitive types for now
-		if !isPrimitiveType(typeStr) {
-			continue
-		}
 
 		field := FieldInfo{
 			Name:        propName,
@@ -68,10 +76,66 @@ func ExtractFields(schemaRef *openapi3.SchemaRef) ([]FieldInfo, error) {
 			ReadOnly:    prop.ReadOnly,
 			Description: prop.Description,
 			TFSDKName:   propName,
-			GoType:      mapTypeToGoType(typeStr),
 		}
 
-		fields = append(fields, field)
+		// Handle different types
+		switch typeStr {
+		case "string":
+			// Check for enum
+			if len(prop.Enum) > 0 {
+				field.Enum = make([]string, 0, len(prop.Enum))
+				for _, e := range prop.Enum {
+					if str, ok := e.(string); ok {
+						field.Enum = append(field.Enum, str)
+					}
+				}
+			}
+			field.GoType = "types.String"
+			fields = append(fields, field)
+
+		case "integer":
+			field.GoType = "types.Int64"
+			fields = append(fields, field)
+
+		case "boolean":
+			field.GoType = "types.Bool"
+			fields = append(fields, field)
+
+		case "number":
+			field.GoType = "types.Float64"
+			fields = append(fields, field)
+
+		case "array":
+			// Extract array item type
+			if prop.Items != nil && prop.Items.Value != nil {
+				itemType := getSchemaType(prop.Items.Value)
+				field.ItemType = itemType
+
+				if itemType == "string" {
+					field.GoType = "types.List"
+					fields = append(fields, field)
+				} else if itemType == "object" {
+					// Array of objects - extract nested schema
+					if nestedFields, err := extractFieldsRecursive(prop.Items, depth+1, maxDepth); err == nil && len(nestedFields) > 0 {
+						// Store first nested field as representative schema
+						if len(nestedFields) > 0 {
+							field.ItemSchema = &nestedFields[0]
+							field.ItemSchema.Properties = nestedFields
+						}
+						field.GoType = "types.List"
+						fields = append(fields, field)
+					}
+				}
+			}
+
+		case "object":
+			// Nested object - extract properties
+			if nestedFields, err := extractFieldsRecursive(propSchema, depth+1, maxDepth); err == nil && len(nestedFields) > 0 {
+				field.Properties = nestedFields
+				field.GoType = "types.Object"
+				fields = append(fields, field)
+			}
+		}
 	}
 
 	return fields, nil
@@ -123,30 +187,4 @@ func getSchemaType(schema *openapi3.Schema) string {
 		return (*schema.Type)[0]
 	}
 	return ""
-}
-
-// isPrimitiveType checks if the OpenAPI type is a supported primitive
-func isPrimitiveType(typeVal string) bool {
-	switch typeVal {
-	case "string", "integer", "boolean", "number":
-		return true
-	default:
-		return false
-	}
-}
-
-// mapTypeToGoType maps OpenAPI type to Terraform Framework Go type
-func mapTypeToGoType(openAPIType string) string {
-	switch openAPIType {
-	case "string":
-		return "types.String"
-	case "integer":
-		return "types.Int64"
-	case "boolean":
-		return "types.Bool"
-	case "number":
-		return "types.Float64"
-	default:
-		return "types.String" // fallback
-	}
 }

@@ -47,30 +47,7 @@ func TestAcc{{ .Name | title }}Resource_Basic(t *testing.T) {
 			// Create operation
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
-			w.Write([]byte(fmt.Sprintf(`{
-				"uuid": "%s"{{- if gt (len .ModelFields) 0 }},{{- end }}
-				{{- range $i, $field := .ModelFields }}
-				{{- if ne $field.Name "uuid" }}
-				{{- if $field.ReadOnly }}
-				{{- if eq $field.Type "string" }}
-				"{{ $field.Name }}": "dummy-{{ $field.Name }}"{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if eq $field.Type "integer" }}
-				"{{ $field.Name }}": 123{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if eq $field.Type "boolean" }}
-				"{{ $field.Name }}": true{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- end }}
-				{{- else }}
-				{{- if eq $field.Type "string" }}
-				"{{ $field.Name }}": "%s"{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if eq $field.Type "integer" }}
-				"{{ $field.Name }}": %d{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if eq $field.Type "boolean" }}
-				"{{ $field.Name }}": %t{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- end }}
-				{{- end }}
-				{{- end }}
-				{{- end }}
-			}`, 
+			w.Write([]byte(fmt.Sprintf(`{{ template "mockResponseJSON" . }}`, 
 			uuid,
 			{{- range .ModelFields }}
 			{{- if and (ne .Name "uuid") (not .ReadOnly) }}
@@ -83,31 +60,10 @@ func TestAcc{{ .Name | title }}Resource_Basic(t *testing.T) {
 			// Read operation - returns current state
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(fmt.Sprintf(`{
-				"uuid": "%s"{{- if gt (len .ModelFields) 0 }},{{- end }}
-				{{- range $i, $field := .ModelFields }}
-				{{- if $field.ReadOnly }}
-				{{- if eq $field.Type "string" }}
-				"{{ $field.Name }}": "dummy-{{ $field.Name }}"{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if eq $field.Type "integer" }}
-				"{{ $field.Name }}": 123{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if eq $field.Type "boolean" }}
-				"{{ $field.Name }}": true{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- end }}
-				{{- else }}
-				{{- if eq $field.Type "string" }}
-				"{{ $field.Name }}": "%s"{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if eq $field.Type "integer" }}
-				"{{ $field.Name }}": %d{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if eq $field.Type "boolean" }}
-				"{{ $field.Name }}": %t{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- end }}
-				{{- end }}
-				{{- end }}
-			}`, 
+			w.Write([]byte(fmt.Sprintf(`{{ template "mockResponseJSON" . }}`, 
 			uuid,
 			{{- range .ModelFields }}
-			{{- if not .ReadOnly }}
+			{{- if and (ne .Name "uuid") (not .ReadOnly) }}
 			{{ .Name }},
 			{{- end }}
 			{{- end }}
@@ -128,33 +84,10 @@ func TestAcc{{ .Name | title }}Resource_Basic(t *testing.T) {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(fmt.Sprintf(`{
-				{{- range $i, $field := .ModelFields }}
-				{{- if eq $field.Name "uuid" }}
-				"{{ $field.Name }}": "%s"{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if $field.ReadOnly }}
-				{{- if eq $field.Type "string" }}
-				"{{ $field.Name }}": "dummy-{{ $field.Name }}"{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if eq $field.Type "integer" }}
-				"{{ $field.Name }}": 123{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if eq $field.Type "boolean" }}
-				"{{ $field.Name }}": true{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- end }}
-				{{- else }}
-				{{- if eq $field.Type "string" }}
-				"{{ $field.Name }}": "%s"{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if eq $field.Type "integer" }}
-				"{{ $field.Name }}": %d{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- else if eq $field.Type "boolean" }}
-				"{{ $field.Name }}": %t{{ if ne $i (sub (len $.ModelFields) 1) }},{{ end }}
-				{{- end }}
-				{{- end }}
-				{{- end }}
-			}`, 
-			{{- range .ModelFields }}
-			{{- if eq .Name "uuid" }}
+			w.Write([]byte(fmt.Sprintf(`{{ template "mockResponseJSON" . }}`, 
 			uuid,
-			{{- else if not .ReadOnly }}
+			{{- range .ModelFields }}
+			{{- if and (ne .Name "uuid") (not .ReadOnly) }}
 			{{ .Name }},
 			{{- end }}
 			{{- end }}
@@ -181,7 +114,17 @@ func TestAcc{{ .Name | title }}Resource_Basic(t *testing.T) {
 					{{- range .ModelFields }}
 					{{- if ne .Name "uuid" }}
 					{{- if .ReadOnly }}
+					{{- if eq .Type "array" }}
+					{{- if eq .ItemType "string" }}
+					resource.TestCheckResourceAttr("waldur_{{ $.Name }}.test", "{{ .TFSDKName }}.#", "2"),
+					resource.TestCheckResourceAttr("waldur_{{ $.Name }}.test", "{{ .TFSDKName }}.0", "tag1"),
+					resource.TestCheckResourceAttr("waldur_{{ $.Name }}.test", "{{ .TFSDKName }}.1", "tag2"),
+					{{- else }}
 					resource.TestCheckResourceAttrSet("waldur_{{ $.Name }}.test", "{{ .TFSDKName }}"),
+					{{- end }}
+					{{- else }}
+					resource.TestCheckResourceAttrSet("waldur_{{ $.Name }}.test", "{{ .TFSDKName }}"),
+					{{- end }}
 					{{- else }}
 					{{- if eq .Type "string" }}
 					resource.TestCheckResourceAttr("waldur_{{ $.Name }}.test", "{{ .TFSDKName }}", "test-{{ .Name }}"),
@@ -203,7 +146,17 @@ func TestAcc{{ .Name | title }}Resource_Basic(t *testing.T) {
 					{{- range .ModelFields }}
 					{{- if ne .Name "uuid" }}
 					{{- if .ReadOnly }}
+					{{- if eq .Type "array" }}
+					{{- if eq .ItemType "string" }}
+					resource.TestCheckResourceAttr("waldur_{{ $.Name }}.test", "{{ .TFSDKName }}.#", "2"),
+					resource.TestCheckResourceAttr("waldur_{{ $.Name }}.test", "{{ .TFSDKName }}.0", "tag1"),
+					resource.TestCheckResourceAttr("waldur_{{ $.Name }}.test", "{{ .TFSDKName }}.1", "tag2"),
+					{{- else }}
 					resource.TestCheckResourceAttrSet("waldur_{{ $.Name }}.test", "{{ .TFSDKName }}"),
+					{{- end }}
+					{{- else }}
+					resource.TestCheckResourceAttrSet("waldur_{{ $.Name }}.test", "{{ .TFSDKName }}"),
+					{{- end }}
 					{{- else }}
 					{{- if eq .Type "string" }}
 					resource.TestCheckResourceAttr("waldur_{{ $.Name }}.test", "{{ .TFSDKName }}", "updated-{{ .Name }}"),
