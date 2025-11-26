@@ -1,0 +1,26 @@
+{{- define "mapResponseFields" }}
+	// Map response fields to data model
+	{{- range .ResponseFields }}
+	{{- if ne .Name "name" }}
+	if val, ok := sourceMap["{{ .Name }}"]; ok && val != nil {
+		{{- if eq .Type "string" }}
+		if str, ok := val.(string); ok {
+			data.{{ .Name | title }} = types.StringValue(str)
+		}
+		{{- else if eq .Type "integer" }}
+		if num, ok := val.(float64); ok {
+			data.{{ .Name | title }} = types.Int64Value(int64(num))
+		}
+		{{- else if eq .Type "boolean" }}
+		if b, ok := val.(bool); ok {
+			data.{{ .Name | title }} = types.BoolValue(b)
+		}
+		{{- else if eq .Type "number" }}
+		if num, ok := val.(float64); ok {
+			data.{{ .Name | title }} = types.Float64Value(num)
+		}
+		{{- end }}
+	}
+	{{- end }}
+	{{- end }}
+{{- end }}
