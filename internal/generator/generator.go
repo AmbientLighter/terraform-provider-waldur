@@ -203,6 +203,20 @@ func (g *Generator) getFuncMap() template.FuncMap {
 		"sub": func(a, b int) int {
 			return a - b
 		},
+		"dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values)%2 != 0 {
+				return nil, fmt.Errorf("dict requires an even number of arguments")
+			}
+			result := make(map[string]interface{}, len(values)/2)
+			for i := 0; i < len(values); i += 2 {
+				key, ok := values[i].(string)
+				if !ok {
+					return nil, fmt.Errorf("dict keys must be strings")
+				}
+				result[key] = values[i+1]
+			}
+			return result, nil
+		},
 	}
 }
 
@@ -305,6 +319,13 @@ func (g *Generator) generateResource(resource *config.Resource) error {
 				TFSDKName:   ToSnakeCase(term.Name),
 				// Required: false, ReadOnly: false -> Optional: true
 			})
+		}
+
+		// Extract Update fields from Resource PartialUpdate operation
+		if updateSchema, err := g.parser.GetOperationRequestSchema(ops.PartialUpdate); err == nil {
+			if fields, err := ExtractFields(updateSchema); err == nil {
+				updateFields = fields
+			}
 		}
 
 	} else {

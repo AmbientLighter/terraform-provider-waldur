@@ -332,7 +332,7 @@ func (r *{{ .Name | title }}Resource) Update(ctx context.Context, req resource.U
 	{{- range $key, $val := $.UpdateActions }}
 		{{- if eq $val.Param $fieldName }}{{ $isAction = true }}{{ end }}
 	{{- end }}
-	{{- if not $isAction }}
+	{{- if and (not $isAction) (not .ReadOnly) }}
 	if !data.{{ .Name | title }}.IsNull() && !data.{{ .Name | title }}.Equal(state.{{ .Name | title }}) {
 		{{- if eq .Type "string" }}
 		patchPayload["{{ .Name }}"] = data.{{ .Name | title }}.ValueString()
@@ -359,10 +359,39 @@ func (r *{{ .Name | title }}Resource) Update(ctx context.Context, req resource.U
 	// Phase 2: RPC Actions
 	{{- range $actionName, $actionConfig := .UpdateActions }}
 	if !data.{{ $actionConfig.Param | title }}.Equal(state.{{ $actionConfig.Param | title }}) {
-		// TODO: Implement RPC action support for complex field types
-		// Action: {{ $actionName }}, Param: {{ $actionConfig.Param }}, Operation: {{ $actionConfig.Operation }}
-		// This requires custom conversion logic for lists and complex types
-		_ = fmt.Sprintf("/api/marketplace-resources/%s/{{ $actionConfig.Operation }}/", data.UUID.ValueString())
+		{{- $field := index $.ModelFields 0 }}
+		{{- range $.ModelFields }}
+		{{- if eq .Name $actionConfig.Param }}
+		{{- $field = . }}
+		{{- end }}
+		{{- end }}
+		
+		// Convert Terraform value to API payload
+		{{- if eq $field.GoType "types.List" }}
+		{{ template "tfListToGo" (dict "ItemType" $field.ItemType "FieldName" ($actionConfig.Param | title) "Suffix" ($actionName | title)) }}
+		actionPayload{{ $actionName | title }} := map[string]interface{}{
+			"{{ $actionConfig.Param }}": items{{ $actionName | title }},
+		}
+		{{- else if eq $field.GoType "types.String" }}
+		actionPayload{{ $actionName | title }} := map[string]interface{}{
+			"{{ $actionConfig.Param }}": data.{{ $actionConfig.Param | title }}.ValueString(),
+		}
+		{{- else if eq $field.GoType "types.Int64" }}
+		actionPayload{{ $actionName | title }} := map[string]interface{}{
+			"{{ $actionConfig.Param }}": data.{{ $actionConfig.Param | title }}.ValueInt64(),
+		}
+		{{- else if eq $field.GoType "types.Bool" }}
+		actionPayload{{ $actionName | title }} := map[string]interface{}{
+			"{{ $actionConfig.Param }}": data.{{ $actionConfig.Param | title }}.ValueBool(),
+		}
+		{{- end }}
+		
+		actionUrl{{ $actionName | title }} := fmt.Sprintf("/api/marketplace-resources/%s/{{ $actionConfig.Operation }}/", data.UUID.ValueString())
+		var actionResult{{ $actionName | title }} map[string]interface{}
+		if err := r.client.Post(ctx, actionUrl{{ $actionName | title }}, actionPayload{{ $actionName | title }}, &actionResult{{ $actionName | title }}); err != nil {
+			resp.Diagnostics.AddError("RPC Action Failed: {{ $actionName }}", err.Error())
+			return
+		}
 	}
 	{{- end }}
 
