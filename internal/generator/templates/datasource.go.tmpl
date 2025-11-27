@@ -145,7 +145,6 @@ func (d *{{ .Name | title }}DataSource) Read(ctx context.Context, req datasource
 
 	} else {
 		// Filter by provided parameters
-		// operationID: {{ .Operations.List }}
 		var results []map[string]interface{}
 		
 		filters := map[string]string{}

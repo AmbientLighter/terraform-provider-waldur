@@ -131,7 +131,6 @@ func (r *{{ .Name | title }}Resource) Create(ctx context.Context, req resource.C
 	}
 
 	// Call Waldur API to create resource
-	// operationID: {{ .Operations.Create }}
 	var result map[string]interface{}
 	
 	err := r.client.Create(ctx, "{{ .APIPaths.Create }}", requestBody, &result)
@@ -166,7 +165,6 @@ func (r *{{ .Name | title }}Resource) Read(ctx context.Context, req resource.Rea
 	}
 
 	// Call Waldur API to read resource
-	// operationID: {{ .Operations.Retrieve }}
 	var result map[string]interface{}
 	retrievePath := strings.Replace("{{ .APIPaths.Retrieve }}", "{uuid}", data.UUID.ValueString(), 1)
 	
@@ -224,7 +222,6 @@ func (r *{{ .Name | title }}Resource) Update(ctx context.Context, req resource.U
 	}
 
 	// Call Waldur API to update resource
-	// operationID: {{ .Operations.PartialUpdate }}
 	var result map[string]interface{}
 	
 	err := r.client.Update(ctx, "{{ .APIPaths.Update }}", data.UUID.ValueString(), requestBody, &result)
@@ -259,8 +256,6 @@ func (r *{{ .Name | title }}Resource) Delete(ctx context.Context, req resource.D
 	}
 
 	// Call Waldur API to delete resource
-	// operationID: {{ .Operations.Destroy }}
-	
 	err := r.client.DeleteByUUID(ctx, "{{ .APIPaths.Delete }}", data.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
