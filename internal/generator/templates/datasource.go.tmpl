@@ -3,9 +3,8 @@ package datasources
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
+	_ "github.com/hashicorp/terraform-plugin-framework/attr" // Used for object types
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -55,7 +54,6 @@ func (d *{{ .Name | title }}DataSource) Schema(ctx context.Context, req datasour
 			{{- range .FilterParams }}
 			"{{ .TFSDKName }}": schema.{{ .Type }}Attribute{
 				Optional:            true,
-				Computed:            true,
 				MarkdownDescription: "{{ .Description }}",
 			},
 			{{- end }}
@@ -133,13 +131,6 @@ func (d *{{ .Name | title }}DataSource) Read(ctx context.Context, req datasource
 		if uuid, ok := item["uuid"].(string); ok {
 			data.UUID = types.StringValue(uuid)
 		}
-		{{- range .FilterParams }}
-		{{- if eq .Type "String" }}
-		if val, ok := item["{{ .Name }}"].(string); ok {
-			data.{{ .TFSDKName | title }} = types.StringValue(val)
-		}
-		{{- end }}
-		{{- end }}
 
 	sourceMap := item
 {{- template "mapResponseFields" . }}
@@ -202,13 +193,6 @@ func (d *{{ .Name | title }}DataSource) Read(ctx context.Context, req datasource
 		if uuid, ok := results[0]["uuid"].(string); ok {
 			data.UUID = types.StringValue(uuid)
 		}
-		{{- range .FilterParams }}
-		{{- if eq .Type "String" }}
-		if val, ok := results[0]["{{ .Name }}"].(string); ok {
-			data.{{ .TFSDKName | title }} = types.StringValue(val)
-		}
-		{{- end }}
-		{{- end }}
 	sourceMap := results[0]
 {{- template "mapResponseFields" . }}
 	}
