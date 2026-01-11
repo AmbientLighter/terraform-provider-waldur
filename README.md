@@ -114,8 +114,9 @@ This allows for:
 **Quick Start in Replay Mode:**
 
 ```bash
-cd output/terraform-waldur-provider
-TF_ACC=1 go test ./internal/e2e -v
+cd testdata/output
+
+TF_ACC=1 go test ./e2e_test -v
 ```
 
 For detailed instructions on setup, recording new cassettes, and writing tests, please refer to the **[E2E VCR Testing Guide](docs/E2E_TEST_SETUP.md)**.
