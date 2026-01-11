@@ -20,3 +20,9 @@ resources:
 data_sources:
   - name: "structure_project"
     base_operation_id: "projects"
+  - name: "openstack_flavor"
+    base_operation_id: "openstack_flavors"
+  - name: "openstack_image"
+    base_operation_id: "openstack_images"
+  - name: "marketplace_offering"
+    base_operation_id: "marketplace_public_offerings"

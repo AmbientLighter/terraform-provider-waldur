@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -48,18 +49,47 @@ func TestOpenstackInstance_CRUD(t *testing.T) {
 	})
 }
 
+func getProviderConfig() string {
+	endpoint := os.Getenv("WALDUR_API_URL")
+	if endpoint == "" {
+		endpoint = "https://api.waldur.example.com"
+	}
+	token := os.Getenv("WALDUR_ACCESS_TOKEN")
+	if token == "" {
+		token = "test-token-sanitized"
+	}
+	return fmt.Sprintf(`provider "waldur" {
+  endpoint = %q
+  token    = %q
+}
+`, endpoint, token)
+}
+
 func testAccOpenstackInstanceConfig_basic() string {
-	return `provider "waldur" {
-  endpoint = "https://api.waldur.example.com"
-  token    = "test-token-sanitized"
+	return getProviderConfig() + `
+
+data "waldur_structure_project" "test" {
+  name = "Default"
+}
+
+data "waldur_openstack_flavor" "test" {
+  name = "m1.small"
+}
+
+data "waldur_openstack_image" "test" {
+  name = "ubuntu-20.04"
+}
+
+data "waldur_marketplace_offering" "test" {
+  name = "OpenStack"
 }
 
 resource "waldur_openstack_instance" "test" {
   name    = "test-instance"
-  flavor  = "m1.small"
-  image   = "ubuntu-20.04"
-  project = "abc123-project-uuid"
-  offering = "offering-uuid"
+  flavor  = data.waldur_openstack_flavor.test.url
+  image   = data.waldur_openstack_image.test.url
+  project = data.waldur_structure_project.test.url
+  offering = data.waldur_marketplace_offering.test.url
   system_volume_size = 1024
   ports = []
 }
@@ -67,17 +97,30 @@ resource "waldur_openstack_instance" "test" {
 }
 
 func testAccOpenstackInstanceConfig_updated() string {
-	return `provider "waldur" {
-  endpoint = "https://api.waldur.example.com"
-  token    = "test-token-sanitized"
+	return getProviderConfig() + `
+
+data "waldur_structure_project" "test" {
+  name = "Default"
+}
+
+data "waldur_openstack_flavor" "test" {
+  name = "m1.small"
+}
+
+data "waldur_openstack_image" "test" {
+  name = "ubuntu-20.04"
+}
+
+data "waldur_marketplace_offering" "test" {
+  name = "OpenStack"
 }
 
 resource "waldur_openstack_instance" "test" {
   name    = "test-instance-updated"
-  flavor  = "m1.small"
-  image   = "ubuntu-20.04"
-  project = "abc123-project-uuid"
-  offering = "offering-uuid"
+  flavor  = data.waldur_openstack_flavor.test.url
+  image   = data.waldur_openstack_image.test.url
+  project = data.waldur_structure_project.test.url
+  offering = data.waldur_marketplace_offering.test.url
   system_volume_size = 1024
   ports = []
 }

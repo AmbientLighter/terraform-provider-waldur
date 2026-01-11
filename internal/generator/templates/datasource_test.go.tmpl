@@ -19,11 +19,11 @@ import (
 // acceptance testing. The factory function will be invoked for every Terraform
 // CLI command executed to create a provider server to which the CLI can
 // reattach.
-var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
+var testAccProtoV6ProviderFactories{{ .Name | title }} = map[string]func() (tfprotov6.ProviderServer, error){
 	"waldur": providerserver.NewProtocol6WithError(provider.New("test")()),
 }
 
-func TestAccStructureProjectDataSource_ByUUID(t *testing.T) {
+func TestAcc{{ .Name | title }}DataSource_ByUUID(t *testing.T) {
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("ByUUID Request: %s %s", r.Method, r.URL.Path)
@@ -49,7 +49,7 @@ func TestAccStructureProjectDataSource_ByUUID(t *testing.T) {
 	defer server.Close()
 
 	resource.Test(t, resource.TestCase{
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories{{ .Name | title }},
 		Steps: []resource.TestStep{
 			// Read testing by UUID
 			{
@@ -92,7 +92,7 @@ func TestAcc{{ .Name | title }}DataSource_ByName(t *testing.T) {
 	defer server.Close()
 
 	resource.Test(t, resource.TestCase{
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories{{ .Name | title }},
 		Steps: []resource.TestStep{
 			// Read testing by name
 			{
@@ -116,7 +116,7 @@ func TestAcc{{ .Name | title }}DataSource_NotFound(t *testing.T) {
 	defer server.Close()
 
 	resource.Test(t, resource.TestCase{
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories{{ .Name | title }},
 		Steps: []resource.TestStep{
 			{
 				Config:      testAcc{{ .Name | title }}DataSourceConfig_ByName(server.URL, "Nonexistent"),
@@ -143,7 +143,7 @@ func TestAcc{{ .Name | title }}DataSource_MultipleResults(t *testing.T) {
 	defer server.Close()
 
 	resource.Test(t, resource.TestCase{
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories{{ .Name | title }},
 		Steps: []resource.TestStep{
 			{
 				Config:      testAcc{{ .Name | title }}DataSourceConfig_ByName(server.URL, "Ambiguous"),

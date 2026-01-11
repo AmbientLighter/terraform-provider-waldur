@@ -60,19 +60,13 @@ func (d *{{ .Name | title }}DataSource) Schema(ctx context.Context, req datasour
 			{{- range .ResponseFields }}
 			{{- if ne .Name "name" }}
 			"{{ .TFSDKName }}": {{- if eq .GoType "types.List" }}schema.ListAttribute{
-				{{- if eq .ItemType "string" }}
-				ElementType: types.StringType,
-				{{- end }}
+				CustomType:          {{ toAttrType . }},
 				Computed:            true,
 				MarkdownDescription: "{{ .Description | sanitize }}",
 			},
 			{{- else if eq .GoType "types.Object" }}schema.ObjectAttribute{
-				Computed: true,
-				AttributeTypes: map[string]attr.Type{
-					{{- range .Properties }}
-					"{{ .TFSDKName }}": {{ .GoType }}Type,
-					{{- end }}
-				},
+				CustomType:          {{ toAttrType . }},
+				Computed:            true,
 				MarkdownDescription: "{{ .Description | sanitize }}",
 			},
 			{{- else }}schema.{{ if eq .Type "string" }}String{{ else if eq .Type "integer" }}Int64{{ else if eq .Type "boolean" }}Bool{{ else if eq .Type "number" }}Float64{{ end }}Attribute{

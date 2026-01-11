@@ -45,6 +45,7 @@ func TestAcc{{ .Name | title }}Resource_Basic(t *testing.T) {
 	{{- end }}
 	{{- end }}
 	{{- end }}
+	{{- end }}
 
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

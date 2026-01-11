@@ -229,34 +229,7 @@ func (g *Generator) getFuncMap() template.FuncMap {
 			}
 			return strings.TrimSpace(s)
 		},
-		"toAttrType": func(f FieldInfo) string {
-			// Convert FieldInfo to proper attr.Type expression
-			switch f.GoType {
-			case "types.String":
-				return "types.StringType"
-			case "types.Int64":
-				return "types.Int64Type"
-			case "types.Bool":
-				return "types.BoolType"
-			case "types.Float64":
-				return "types.Float64Type"
-			case "types.List":
-				// For lists, we need to specify the element type
-				if f.ItemType == "string" {
-					return "types.ListType{ElemType: types.StringType}"
-				} else if f.ItemType == "integer" {
-					return "types.ListType{ElemType: types.Int64Type}"
-				} else if f.ItemType == "object" && f.ItemSchema != nil {
-					return "types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{}}}" // Simplified
-				}
-				return "types.ListType{ElemType: types.StringType}" // Default
-			case "types.Object":
-				// For objects, return the type constructor
-				return "types.ObjectType{AttrTypes: map[string]attr.Type{}}" // Simplified, properties handled inline
-			default:
-				return "types.StringType" // Fallback
-			}
-		},
+		"toAttrType": ToAttrType,
 		"len": func(v interface{}) int {
 			// Handle different types if needed, for now assume []FieldInfo
 			if fields, ok := v.([]FieldInfo); ok {
@@ -281,6 +254,44 @@ func (g *Generator) getFuncMap() template.FuncMap {
 			}
 			return result, nil
 		},
+	}
+}
+
+// ToAttrType converts FieldInfo to proper attr.Type expression used in Terraform schema
+func ToAttrType(f FieldInfo) string {
+	switch f.GoType {
+	case "types.String":
+		return "types.StringType"
+	case "types.Int64":
+		return "types.Int64Type"
+	case "types.Bool":
+		return "types.BoolType"
+	case "types.Float64":
+		return "types.Float64Type"
+	case "types.List":
+		// For lists, we need to specify the element type
+		if f.ItemType == "string" {
+			return "types.ListType{ElemType: types.StringType}"
+		} else if f.ItemType == "integer" {
+			return "types.ListType{ElemType: types.Int64Type}"
+		} else if f.ItemType == "object" && f.ItemSchema != nil {
+			// Recursively build the object type for list items
+			var attrs []string
+			for _, prop := range f.ItemSchema.Properties {
+				attrs = append(attrs, fmt.Sprintf("%q: %s", prop.TFSDKName, ToAttrType(prop)))
+			}
+			return fmt.Sprintf("types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{%s}}}", strings.Join(attrs, ", "))
+		}
+		return "types.ListType{ElemType: types.StringType}" // Default
+	case "types.Object":
+		// For objects, build the attribute types map
+		var attrs []string
+		for _, prop := range f.Properties {
+			attrs = append(attrs, fmt.Sprintf("%q: %s", prop.TFSDKName, ToAttrType(prop)))
+		}
+		return fmt.Sprintf("types.ObjectType{AttrTypes: map[string]attr.Type{%s}}", strings.Join(attrs, ", "))
+	default:
+		return "types.StringType" // Fallback
 	}
 }
 

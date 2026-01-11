@@ -111,8 +111,11 @@ func extractFieldsRecursive(schemaRef *openapi3.SchemaRef, depth, maxDepth int) 
 					if nestedFields, err := extractFieldsRecursive(prop.Items, depth+1, maxDepth); err == nil && len(nestedFields) > 0 {
 						// Store first nested field as representative schema
 						if len(nestedFields) > 0 {
-							field.ItemSchema = &nestedFields[0]
-							field.ItemSchema.Properties = nestedFields
+							field.ItemSchema = &FieldInfo{
+								Type:       "object",
+								GoType:     "types.Object",
+								Properties: nestedFields,
+							}
 						}
 						field.GoType = "types.List"
 						fields = append(fields, field)

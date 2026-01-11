@@ -57,21 +57,7 @@ func (r *{{ .Name | title }}Resource) Schema(ctx context.Context, req resource.S
 			},
 			{{- range .ModelFields }}
 			"{{ .TFSDKName }}": {{- if eq .GoType "types.List" }}schema.ListAttribute{
-				{{- if eq .ItemType "string" }}
-				ElementType: types.StringType,
-				{{- else if eq .ItemType "integer" }}
-				ElementType: types.Int64Type,
-				{{- else if eq .ItemType "boolean" }}
-				ElementType: types.BoolType,
-				{{- else if eq .ItemType "number" }}
-				ElementType: types.Float64Type,
-				{{- else if eq .ItemType "object" }}
-				ElementType: types.ObjectType{AttrTypes: map[string]attr.Type{
-					{{- range .ItemSchema.Properties }}
-					"{{ .TFSDKName }}": {{ toAttrType . }},
-					{{- end }}
-				}},
-				{{- end }}
+				CustomType: {{ toAttrType . }},
 				{{- if .ReadOnly }}
 				Computed:            true,
 				{{- else if .Required }}
@@ -83,12 +69,8 @@ func (r *{{ .Name | title }}Resource) Schema(ctx context.Context, req resource.S
 				MarkdownDescription: "{{ .Description | sanitize }}",
 			},
 			{{- else if eq .GoType "types.Object" }}schema.ObjectAttribute{
+				CustomType: {{ toAttrType . }},
 				Computed: true,
-				AttributeTypes: map[string]attr.Type{
-					{{- range .Properties }}
-					"{{ .TFSDKName }}": {{ toAttrType . }},
-					{{- end }}
-				},
 				MarkdownDescription: "{{ .Description | sanitize }}",
 			},
 			{{- else }}schema.{{ if eq .Type "string" }}String{{ else if eq .Type "integer" }}Int64{{ else if eq .Type "boolean" }}Bool{{ else if eq .Type "number" }}Float64{{ end }}Attribute{
