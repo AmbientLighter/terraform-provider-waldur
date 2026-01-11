@@ -45,7 +45,7 @@ Create a `config.yaml` file that defines the resources and data sources you want
 ```yaml
 generator:
   openapi_schema: "path/to/waldur-openapi.yaml"
-  output_dir: "./output/terraform-waldur-provider"
+  output_dir: "output"
   provider_name: "waldur"
 
 resources:
@@ -85,7 +85,7 @@ go run main.go -config config.yaml
 ### 3. Build the Generated Provider
 
 ```bash
-cd ./output/terraform-waldur-provider
+cd output
 go mod tidy
 go build
 ```
@@ -94,7 +94,7 @@ go build
 
 ```bash
 # Run unit tests
-cd ./output/terraform-waldur-provider
+cd output
 go test ./... -v
 
 # Run acceptance tests (requires TF_ACC=1)
@@ -114,7 +114,7 @@ This allows for:
 **Quick Start in Replay Mode:**
 
 ```bash
-cd testdata/output
+cd output
 
 TF_ACC=1 go test ./e2e_test -v
 ```
@@ -128,7 +128,7 @@ You can test the built provider locally without publishing it to the Terraform R
 #### Step 1: Build and install the provider binary
 
 ```bash
-cd ./output/terraform-waldur-provider
+cd output
 go build -o terraform-provider-waldur
 
 # Create the local plugin directory
@@ -219,7 +219,7 @@ When you're done testing, remove or comment out the `dev_overrides` section from
 The generator creates a complete provider with the following structure:
 
 ```text
-output/terraform-waldur-provider/
+output/
 ├── main.go                          # Provider entry point
 ├── go.mod                           # Go module
 ├── internal/
@@ -285,7 +285,7 @@ The GitHub Actions workflow will automatically:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `openapi_schema` | string | Yes | Path to Waldur OpenAPI schema file |
-| `output_dir` | string | No | Output directory (default: `./output/terraform-waldur-provider`) |
+| `output_dir` | string | No | Output directory (default: `output`) |
 | `provider_name` | string | Yes | Provider name (e.g., `waldur`) |
 
 ### Resources and Data Sources
@@ -307,7 +307,7 @@ terraform-waldur-provider-generator/
 │   ├── openapi/                # OpenAPI schema parsing
 │   └── generator/              # Code generation logic
 │       └── templates/          # Template files
-├── testdata/                   # Test data
+├── output/                     # Generated provider
 ├── examples/                   # Example configurations
 └── config.yaml                 # Example config
 ```

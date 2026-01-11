@@ -20,7 +20,7 @@ cp -r internal/testhelpers testdata/output/internal/
 Create the directory where VCR cassettes will be stored:
 
 ```bash
-mkdir -p testdata/output/testdata/fixtures
+mkdir -p output/testdata/fixtures
 ```
 
 ### C. Install Dependencies
@@ -28,7 +28,7 @@ mkdir -p testdata/output/testdata/fixtures
 Navigate to your generated provider directory and install necessary testing modules:
 
 ```bash
-cd testdata/output
+cd output
 go get github.com/hashicorp/terraform-plugin-testing
 go get github.com/hashicorp/terraform-plugin-framework
 go get github.com/hashicorp/terraform-plugin-go
@@ -182,7 +182,7 @@ To run these tests in GitHub Actions or other CI:
 
 ```yaml
 - name: Run E2E Tests
-  working-directory: testdata/output
+  working-directory: output
   run: go test ./e2e_test -v
   env:
     TF_ACC: "1"

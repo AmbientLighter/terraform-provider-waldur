@@ -74,4 +74,4 @@ require (
 	google.golang.org/protobuf v1.36.9 // indirect
 )
 
-replace github.com/waldur/terraform-waldur-provider => ./testdata/output
+replace github.com/waldur/terraform-waldur-provider => ./output

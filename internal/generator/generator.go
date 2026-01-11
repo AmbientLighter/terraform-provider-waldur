@@ -109,6 +109,21 @@ func (g *Generator) Generate() error {
 		return fmt.Errorf("failed to generate supporting files: %w", err)
 	}
 
+	// Generate E2E tests
+	if err := g.generateE2ETests(); err != nil {
+		return fmt.Errorf("failed to generate E2E tests: %w", err)
+	}
+
+	// Generate VCR helpers
+	if err := g.generateVCRHelpers(); err != nil {
+		return fmt.Errorf("failed to generate VCR helpers: %w", err)
+	}
+
+	// Generate VCR fixtures
+	if err := g.generateFixtures(); err != nil {
+		return fmt.Errorf("failed to generate VCR fixtures: %w", err)
+	}
+
 	// Clean up generated Go files (format and remove unused imports)
 	if err := g.cleanupImports(); err != nil {
 		return fmt.Errorf("failed to cleanup imports: %w", err)
@@ -154,8 +169,11 @@ func (g *Generator) createDirectoryStructure() error {
 		filepath.Join(g.config.Generator.OutputDir, "internal", "resources"),
 		filepath.Join(g.config.Generator.OutputDir, "internal", "datasources"),
 		filepath.Join(g.config.Generator.OutputDir, "internal", "client"),
+		filepath.Join(g.config.Generator.OutputDir, "internal", "testhelpers"),
+		filepath.Join(g.config.Generator.OutputDir, "testdata", "fixtures"),
 		filepath.Join(g.config.Generator.OutputDir, "examples"),
 		filepath.Join(g.config.Generator.OutputDir, ".github", "workflows"),
+		filepath.Join(g.config.Generator.OutputDir, "e2e_test"),
 	}
 
 	for _, dir := range dirs {
@@ -622,23 +640,6 @@ func (g *Generator) generateSupportingFiles() error {
 	return nil
 }
 
-// generateTestHelpers creates the shared test helpers file
-func (g *Generator) generateTestHelpers() error {
-	tmpl, err := template.ParseFS(templates, "templates/test_helpers.go.tmpl")
-	if err != nil {
-		return fmt.Errorf("failed to parse test helpers template: %w", err)
-	}
-
-	outputPath := filepath.Join(g.config.Generator.OutputDir, "internal", "resources", "test_helpers.go")
-	f, err := os.Create(outputPath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	return tmpl.Execute(f, nil)
-}
-
 // generateClient creates the API client file
 func (g *Generator) generateClient() error {
 	tmpl, err := template.ParseFS(templates, "templates/client.go.tmpl")
@@ -769,4 +770,91 @@ func (g *Generator) generateGitHubWorkflow() error {
 	}
 
 	return tmpl.Execute(f, data)
+}
+
+// generateE2ETests copies E2E tests from templates to output
+func (g *Generator) generateE2ETests() error {
+	entries, err := templates.ReadDir("templates/e2e")
+	if err != nil {
+		// It's possible the directory doesn't exist if no tests are there yet
+		// We return nil to allow generation to proceed even without E2E tests
+		return nil
+	}
+
+	outputDir := filepath.Join(g.config.Generator.OutputDir, "e2e_test")
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		content, err := templates.ReadFile("templates/e2e/" + entry.Name())
+		if err != nil {
+			return fmt.Errorf("failed to read template %s: %w", entry.Name(), err)
+		}
+
+		// Write file
+		outputPath := filepath.Join(outputDir, entry.Name())
+		if err := os.WriteFile(outputPath, content, 0644); err != nil {
+			return fmt.Errorf("failed to write test file %s: %w", entry.Name(), err)
+		}
+	}
+	return nil
+}
+
+// generateVCRHelpers copies VCR helpers from templates to output
+func (g *Generator) generateVCRHelpers() error {
+	entries, err := templates.ReadDir("templates/testhelpers")
+	if err != nil {
+		return fmt.Errorf("failed to read templates/testhelpers: %w", err)
+	}
+
+	outputDir := filepath.Join(g.config.Generator.OutputDir, "internal", "testhelpers")
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		content, err := templates.ReadFile("templates/testhelpers/" + entry.Name())
+		if err != nil {
+			return fmt.Errorf("failed to read template %s: %w", entry.Name(), err)
+		}
+
+		// Write file
+		outputPath := filepath.Join(outputDir, entry.Name())
+		if err := os.WriteFile(outputPath, content, 0644); err != nil {
+			return fmt.Errorf("failed to write helper file %s: %w", entry.Name(), err)
+		}
+	}
+	return nil
+}
+
+// generateFixtures copies VCR fixtures from templates to output
+func (g *Generator) generateFixtures() error {
+	entries, err := templates.ReadDir("templates/fixtures")
+	if err != nil {
+		// It's possible the directory doesn't exist if no fixtures are there yet
+		return nil
+	}
+
+	outputDir := filepath.Join(g.config.Generator.OutputDir, "testdata", "fixtures")
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		content, err := templates.ReadFile("templates/fixtures/" + entry.Name())
+		if err != nil {
+			return fmt.Errorf("failed to read template %s: %w", entry.Name(), err)
+		}
+
+		// Write file
+		outputPath := filepath.Join(outputDir, entry.Name())
+		if err := os.WriteFile(outputPath, content, 0644); err != nil {
+			return fmt.Errorf("failed to write fixture file %s: %w", entry.Name(), err)
+		}
+	}
+	return nil
 }
