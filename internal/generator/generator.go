@@ -529,6 +529,12 @@ func (g *Generator) generateDataSource(dataSource *config.DataSource) error {
 		for _, param := range operation.Parameters {
 			if param.Value != nil && param.Value.In == "query" {
 				paramName := param.Value.Name
+
+				// Skip pagination and ordering parameters
+				if paramName == "page" || paramName == "page_size" || paramName == "o" {
+					continue
+				}
+
 				description := param.Value.Description
 
 				// Determine Terraform type
