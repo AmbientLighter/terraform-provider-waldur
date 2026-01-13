@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -611,7 +612,52 @@ func (g *Generator) generateResource(resource *config.Resource) error {
 		}
 
 		// Merge fields for the model (Create + Response)
-		modelFields = MergeFields(createFields, responseFields)
+		allFields := MergeFields(createFields, responseFields)
+
+		// Filter out marketplace and other fields for non-order resources
+		if !isOrder {
+			excludeFields := map[string]bool{
+				"marketplace_category_name":      true,
+				"marketplace_category_uuid":      true,
+				"marketplace_offering_name":      true,
+				"marketplace_offering_uuid":      true,
+				"marketplace_plan_uuid":          true,
+				"marketplace_resource_state":     true,
+				"marketplace_resource_uuid":      true,
+				"is_limit_based":                 true,
+				"is_usage_based":                 true,
+				"service_name":                   true,
+				"service_settings":               true,
+				"service_settings_error_message": true,
+				"service_settings_state":         true,
+				"service_settings_uuid":          true,
+				"project":                        true,
+				"project_name":                   true,
+				"project_uuid":                   true,
+				"customer":                       true,
+				"customer_abbreviation":          true,
+				"customer_name":                  true,
+				"customer_native_name":           true,
+				"customer_uuid":                  true,
+			}
+
+			// Create a set of input fields to protect them from removal
+			inputFields := make(map[string]bool)
+			for _, f := range createFields {
+				inputFields[f.TFSDKName] = true
+			}
+
+			modelFields = make([]FieldInfo, 0)
+			for _, f := range allFields {
+				// Remove if it's in exclude list AND NOT an input field
+				if excludeFields[f.TFSDKName] && !inputFields[f.TFSDKName] {
+					continue
+				}
+				modelFields = append(modelFields, f)
+			}
+		} else {
+			modelFields = allFields
+		}
 	}
 
 	// Update responseFields to use merged field definitions
@@ -629,6 +675,13 @@ func (g *Generator) generateResource(resource *config.Resource) error {
 		}
 	}
 	responseFields = newResponseFields
+
+	// Sort all fields for deterministic output
+	sort.Slice(createFields, func(i, j int) bool { return createFields[i].Name < createFields[j].Name })
+	sort.Slice(updateFields, func(i, j int) bool { return updateFields[i].Name < updateFields[j].Name })
+	sort.Slice(responseFields, func(i, j int) bool { return responseFields[i].Name < responseFields[j].Name })
+	sort.Slice(modelFields, func(i, j int) bool { return modelFields[i].Name < modelFields[j].Name })
+	sort.Slice(updateActions, func(i, j int) bool { return updateActions[i].Name < updateActions[j].Name })
 
 	data := map[string]interface{}{
 		"Name":                  resource.Name,
@@ -749,6 +802,57 @@ func (g *Generator) generateDataSource(dataSource *config.DataSource) error {
 			dedupedResponseFields = append(dedupedResponseFields, rf)
 		}
 	}
+
+	// Look up corresponding Resource to determine if it's an Order resource
+	isOrder := false
+	for _, res := range g.config.Resources {
+		if res.Name == dataSource.Name {
+			if res.Plugin == "order" {
+				isOrder = true
+			}
+			break
+		}
+	}
+
+	// Filter out marketplace and other fields for non-order resources
+	if !isOrder {
+		excludeFields := map[string]bool{
+			"marketplace_category_name":      true,
+			"marketplace_category_uuid":      true,
+			"marketplace_offering_name":      true,
+			"marketplace_offering_uuid":      true,
+			"marketplace_plan_uuid":          true,
+			"marketplace_resource_state":     true,
+			"marketplace_resource_uuid":      true,
+			"is_limit_based":                 true,
+			"is_usage_based":                 true,
+			"service_name":                   true,
+			"service_settings":               true,
+			"service_settings_error_message": true,
+			"service_settings_state":         true,
+			"service_settings_uuid":          true,
+			"project":                        true,
+			"project_name":                   true,
+			"project_uuid":                   true,
+			"customer":                       true,
+			"customer_abbreviation":          true,
+			"customer_name":                  true,
+			"customer_native_name":           true,
+			"customer_uuid":                  true,
+		}
+
+		var filteredFields []FieldInfo
+		for _, f := range dedupedResponseFields {
+			if !excludeFields[f.TFSDKName] {
+				filteredFields = append(filteredFields, f)
+			}
+		}
+		dedupedResponseFields = filteredFields
+	}
+
+	// Sort fields for deterministic output
+	sort.Slice(filterParams, func(i, j int) bool { return filterParams[i].Name < filterParams[j].Name })
+	sort.Slice(dedupedResponseFields, func(i, j int) bool { return dedupedResponseFields[i].Name < dedupedResponseFields[j].Name })
 
 	data := map[string]interface{}{
 		"Name":           dataSource.Name,
