@@ -532,8 +532,8 @@ func (g *Generator) generateDataSource(dataSource *config.DataSource) error {
 			if param.Value != nil && param.Value.In == "query" {
 				paramName := param.Value.Name
 
-				// Skip pagination and ordering parameters
-				if paramName == "page" || paramName == "page_size" || paramName == "o" {
+				// Skip pagination, ordering, and API optimization parameters
+				if paramName == "page" || paramName == "page_size" || paramName == "o" || paramName == "field" {
 					continue
 				}
 
