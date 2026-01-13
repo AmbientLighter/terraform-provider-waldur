@@ -79,6 +79,10 @@ data_sources:
     filter_params:
       - "name"
       - "customer_uuid"
+  - name: "structure_customer"
+    base_operation_id: "customers"
+    filter_params:
+      - "name"
 
   # Core
   - name: "core_ssh_public_key"
