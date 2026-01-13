@@ -24,7 +24,15 @@ resources:
     skip_operations:
       - "create"   # Resources are created via marketplace orders
       - "destroy"  # Resources are terminated via marketplace orders
-
+    update_actions:
+      update_limits:
+        operation: "marketplace_resources_update_limits"
+        param: "limits"
+        compare_key: "limits"
+      update_options:
+        operation: "marketplace_resources_update_options"
+        param: "options"
+        compare_key: "options"
   # OpenStack - Order plugin resources
   - name: "openstack_vpc"
     base_operation_id: "openstack_tenants"

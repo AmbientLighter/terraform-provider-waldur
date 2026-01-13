@@ -410,8 +410,8 @@ func (r *{{ .Name | title }}Resource) Update(ctx context.Context, req resource.U
 	{{- range .UpdateFields }}
 	{{- $fieldName := .Name }}
 	{{- $isAction := false }}
-	{{- range $key, $val := $.UpdateActions }}
-		{{- if eq $val.Param $fieldName }}{{ $isAction = true }}{{ end }}
+	{{- range $.UpdateActions }}
+		{{- if eq .Param $fieldName }}{{ $isAction = true }}{{ end }}
 	{{- end }}
 	{{- if and (not $isAction) (not .ReadOnly) }}
 	if !data.{{ .Name | title }}.IsNull() && !data.{{ .Name | title }}.Equal(state.{{ .Name | title }}) {
@@ -444,39 +444,47 @@ func (r *{{ .Name | title }}Resource) Update(ctx context.Context, req resource.U
 		return
 	}
 
-	{{- range $actionName, $actionConfig := .UpdateActions }}
-	if !data.{{ $actionConfig.Param | title }}.Equal(state.{{ $actionConfig.Param | title }}) {
+	{{- range $action := .UpdateActions }}
+	if !data.{{ $action.Param | title }}.Equal(state.{{ $action.Param | title }}) {
 		{{- $field := index $.ModelFields 0 }}
 		{{- range $.ModelFields }}
-		{{- if eq .Name $actionConfig.Param }}
+		{{- if eq .Name $action.Param }}
 		{{- $field = . }}
 		{{- end }}
 		{{- end }}
 		
 		// Convert Terraform value to API payload
 		{{- if eq $field.GoType "types.List" }}
-		{{ template "tfListToGo" (dict "ItemType" $field.ItemType "FieldName" ($actionConfig.Param | title) "Suffix" ($actionName | title)) }}
-		actionPayload{{ $actionName | title }} := map[string]interface{}{
-			"{{ $actionConfig.Param }}": items{{ $actionName | title }},
+		{{ template "tfListToGo" (dict "ItemType" $field.ItemType "FieldName" ($action.Param | title) "Suffix" ($action.Name | title)) }}
+		actionPayload{{ $action.Name | title }} := map[string]interface{}{
+			"{{ $action.Param }}": items{{ $action.Name | title }},
+		}
+		{{- else if eq $field.GoType "types.Object" }}
+		actionPayload{{ $action.Name | title }} := map[string]interface{}{
+			"{{ $action.Param }}": r.convertTFValue(data.{{ $action.Param | title }}),
 		}
 		{{- else if eq $field.GoType "types.String" }}
-		actionPayload{{ $actionName | title }} := map[string]interface{}{
-			"{{ $actionConfig.Param }}": data.{{ $actionConfig.Param | title }}.ValueString(),
+		actionPayload{{ $action.Name | title }} := map[string]interface{}{
+			"{{ $action.Param }}": data.{{ $action.Param | title }}.ValueString(),
 		}
 		{{- else if eq $field.GoType "types.Int64" }}
-		actionPayload{{ $actionName | title }} := map[string]interface{}{
-			"{{ $actionConfig.Param }}": data.{{ $actionConfig.Param | title }}.ValueInt64(),
+		actionPayload{{ $action.Name | title }} := map[string]interface{}{
+			"{{ $action.Param }}": data.{{ $action.Param | title }}.ValueInt64(),
 		}
 		{{- else if eq $field.GoType "types.Bool" }}
-		actionPayload{{ $actionName | title }} := map[string]interface{}{
-			"{{ $actionConfig.Param }}": data.{{ $actionConfig.Param | title }}.ValueBool(),
+		actionPayload{{ $action.Name | title }} := map[string]interface{}{
+			"{{ $action.Param }}": data.{{ $action.Param | title }}.ValueBool(),
 		}
 		{{- end }}
 		
-		actionUrl{{ $actionName | title }} := fmt.Sprintf("/api/marketplace-resources/%s/{{ $actionConfig.Operation }}/", data.UUID.ValueString())
-		var actionResult{{ $actionName | title }} map[string]interface{}
-		if err := r.client.Post(ctx, actionUrl{{ $actionName | title }}, actionPayload{{ $actionName | title }}, &actionResult{{ $actionName | title }}); err != nil {
-			resp.Diagnostics.AddError("RPC Action Failed: {{ $actionName }}", err.Error())
+		{{- if $action.Path }}
+		actionUrl{{ $action.Name | title }} := strings.Replace("{{ $action.Path }}", "{uuid}", data.UUID.ValueString(), 1)
+		{{- else }}
+		actionUrl{{ $action.Name | title }} := fmt.Sprintf("/api/{{ $.Operations.List | replace "_list" "" | replace "_" "-" }}/%s/{{ $action.Name }}/", data.UUID.ValueString())
+		{{- end }}
+		var actionResult{{ $action.Name | title }} map[string]interface{}
+		if err := r.client.Post(ctx, actionUrl{{ $action.Name | title }}, actionPayload{{ $action.Name | title }}, &actionResult{{ $action.Name | title }}); err != nil {
+			resp.Diagnostics.AddError("RPC Action Failed: {{ $action.Name }}", err.Error())
 			return
 		}
 	}

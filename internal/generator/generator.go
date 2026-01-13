@@ -59,6 +59,15 @@ type FilterParam struct {
 	Description string
 }
 
+// UpdateAction represents an enriched update action with resolved API path
+type UpdateAction struct {
+	Name       string // Action name (e.g., "update_limits")
+	Operation  string // OpenAPI operation ID
+	Param      string // Parameter name for payload
+	CompareKey string // Field to compare for changes
+	Path       string // Resolved API path from OpenAPI
+}
+
 // Generator orchestrates the provider code generation
 type Generator struct {
 	config *config.Config
@@ -269,6 +278,9 @@ func (g *Generator) getFuncMap() template.FuncMap {
 			}
 			return result, nil
 		},
+		"replace": func(s, old, new string) string {
+			return strings.ReplaceAll(s, old, new)
+		},
 	}
 }
 
@@ -354,6 +366,26 @@ func (g *Generator) generateResource(resource *config.Resource) error {
 	// Get path from delete operation
 	if _, deletePath, _, err := g.parser.GetOperation(ops.Destroy); err == nil {
 		apiPaths["Delete"] = deletePath
+	}
+
+	// Resolve update action paths from OpenAPI schema
+	var updateActions []UpdateAction
+	for actionName, actionConfig := range resource.UpdateActions {
+		action := UpdateAction{
+			Name:       actionName,
+			Operation:  actionConfig.Operation,
+			Param:      actionConfig.Param,
+			CompareKey: actionConfig.CompareKey,
+		}
+		// Default CompareKey to Param if not specified
+		if action.CompareKey == "" {
+			action.CompareKey = action.Param
+		}
+		// Resolve path from OpenAPI operation
+		if _, actionPath, _, err := g.parser.GetOperation(actionConfig.Operation); err == nil {
+			action.Path = actionPath
+		}
+		updateActions = append(updateActions, action)
 	}
 
 	// Extract fields
@@ -481,7 +513,7 @@ func (g *Generator) generateResource(resource *config.Resource) error {
 		"ModelFields":           modelFields,
 		"IsOrder":               isOrder,
 		"OfferingType":          resource.OfferingType,
-		"UpdateActions":         resource.UpdateActions,
+		"UpdateActions":         updateActions, // Use enriched UpdateAction slice with resolved paths
 		"TerminationAttributes": resource.TerminationAttributes,
 	}
 
