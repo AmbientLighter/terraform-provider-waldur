@@ -42,7 +42,7 @@ resources:
 
   # OpenStack - Order plugin resources
 
-  - name: "openstack_vpc"
+  - name: "openstack_tenant"
     base_operation_id: "openstack_tenants"
     plugin: order
     offering_type: OpenStack.Tenant
@@ -181,7 +181,7 @@ data_sources:
     base_operation_id: "marketplace_resources"
 
   # OpenStack
-  - name: "openstack_vpc"
+  - name: "openstack_tenant"
     base_operation_id: "openstack_tenants"
     
   - name: "openstack_volume"
