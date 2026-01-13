@@ -330,7 +330,16 @@ func (r *{{ .Name | title }}Resource) Create(ctx context.Context, req resource.C
 	// Call Waldur API to create resource
 	var result map[string]interface{}
 	
+	{{- if .CreateOperation }}
+	// Custom create operation via parent resource
+	createPath := "{{ .APIPaths.Create }}"
+	{{- range $key, $value := .CreateOperation.PathParams }}
+	createPath = strings.Replace(createPath, "{{"{"}}{{ $key }}{{"}"}}", data.{{ $value | title }}.ValueString(), 1)
+	{{- end }}
+	err := r.client.Post(ctx, createPath, requestBody, &result)
+	{{- else }}
 	err := r.client.Create(ctx, "{{ .APIPaths.Create }}", requestBody, &result)
+	{{- end }}
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Create {{ .Name | title }}",

@@ -82,33 +82,44 @@ resources:
   # OpenStack - CRUD resources
   - name: "openstack_security_group"
     base_operation_id: "openstack_security_groups"
-    skip_operations:
-      - "create"   # Created via tenant API
+    create_operation:
+      operation_id: "openstack_tenants_create_security_group"
+      path_params:
+        uuid: "tenant"
     update_actions:
       set_rules:
         operation: "openstack_security_groups_set_rules"
         param: "rules"
   - name: "openstack_network"
     base_operation_id: "openstack_networks"
-    skip_operations:
-      - "create"   # Created via tenant API
+    create_operation:
+      operation_id: "openstack_tenants_create_network"
+      path_params:
+        uuid: "tenant"
     update_actions:
       set_mtu:
         operation: "openstack_networks_set_mtu"
         param: "mtu"
   - name: "openstack_server_group"
     base_operation_id: "openstack_server_groups"
-    skip_operations:
-      - "create"   # Created via tenant API
+    create_operation:
+      operation_id: "openstack_tenants_create_server_group"
+      path_params:
+        uuid: "tenant"
   - name: "openstack_subnet"
     base_operation_id: "openstack_subnets"
-    skip_operations:
-      - "create"   # Created via network API
+    create_operation:
+      operation_id: "openstack_networks_create_subnet"
+      path_params:
+        uuid: "network"
   - name: "openstack_floating_ip"
     base_operation_id: "openstack_floating_ips"
     skip_operations:
-      - "create"          # Created via tenant API
       - "partial_update"  # Uses specific update actions
+    create_operation:
+      operation_id: "openstack_tenants_create_floating_ip"
+      path_params:
+        uuid: "tenant"
     update_actions:
       update_description:
         operation: "openstack_floating_ips_update_description"

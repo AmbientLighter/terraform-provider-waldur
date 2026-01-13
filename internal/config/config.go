@@ -29,7 +29,14 @@ type Resource struct {
 	OfferingType          string                        `yaml:"offering_type"`
 	UpdateActions         map[string]UpdateActionConfig `yaml:"update_actions"`
 	TerminationAttributes []ParameterConfig             `yaml:"termination_attributes"`
-	SkipOperations        []string                      `yaml:"skip_operations"` // Operations to skip validation for (e.g., "partial_update", "create", "destroy")
+	SkipOperations        []string                      `yaml:"skip_operations"`  // Operations to skip validation for
+	CreateOperation       *CreateOperationConfig        `yaml:"create_operation"` // Custom create operation (for nested resources)
+}
+
+// CreateOperationConfig defines a custom create operation for nested resources
+type CreateOperationConfig struct {
+	OperationID string            `yaml:"operation_id"` // The OpenAPI operation ID (e.g., "openstack_tenants_create_floating_ip")
+	PathParams  map[string]string `yaml:"path_params"`  // Path parameters mapping (e.g., uuid: tenant)
 }
 
 // UpdateActionConfig defines a custom update action

@@ -160,7 +160,12 @@ func (g *Generator) validateOperations() error {
 			"partial_update": ops.PartialUpdate,
 		}
 		if resource.Plugin != "order" {
-			operationsToCheck["create"] = ops.Create
+			// Use custom create operation if specified
+			if resource.CreateOperation != nil && resource.CreateOperation.OperationID != "" {
+				operationsToCheck["create"] = resource.CreateOperation.OperationID
+			} else {
+				operationsToCheck["create"] = ops.Create
+			}
 			operationsToCheck["destroy"] = ops.Destroy
 		}
 
@@ -348,8 +353,17 @@ func (g *Generator) generateResource(resource *config.Resource) error {
 		apiPaths["Base"] = basePath
 	}
 
-	// Get path from create operation
-	if _, createPath, _, err := g.parser.GetOperation(ops.Create); err == nil {
+	// Get path from create operation (check for custom create operation first)
+	if resource.CreateOperation != nil && resource.CreateOperation.OperationID != "" {
+		if _, createPath, _, err := g.parser.GetOperation(resource.CreateOperation.OperationID); err == nil {
+			apiPaths["Create"] = createPath
+			apiPaths["CreateOperationID"] = resource.CreateOperation.OperationID
+			// Store path params for template
+			for k, v := range resource.CreateOperation.PathParams {
+				apiPaths["CreatePathParam_"+k] = v
+			}
+		}
+	} else if _, createPath, _, err := g.parser.GetOperation(ops.Create); err == nil {
 		apiPaths["Create"] = createPath
 	}
 
@@ -515,6 +529,7 @@ func (g *Generator) generateResource(resource *config.Resource) error {
 		"OfferingType":          resource.OfferingType,
 		"UpdateActions":         updateActions, // Use enriched UpdateAction slice with resolved paths
 		"TerminationAttributes": resource.TerminationAttributes,
+		"CreateOperation":       resource.CreateOperation, // Custom create operation config
 	}
 
 	if err := tmpl.Execute(f, data); err != nil {
