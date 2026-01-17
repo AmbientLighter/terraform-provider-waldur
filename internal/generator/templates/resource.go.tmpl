@@ -354,9 +354,11 @@ func (r *{{ .Name | title }}Resource) Create(ctx context.Context, req resource.C
 	// Prepare request body
 	requestBody := map[string]interface{}{}
 	{{- range .CreateFields }}
-	if !data.{{ .Name | title }}.IsNull() {
+	if !data.{{ .Name | title }}.IsNull() && !data.{{ .Name | title }}.IsUnknown() {
 		{{- if eq .Type "string" }}
-		requestBody["{{ .Name }}"] = data.{{ .Name | title }}.ValueString()
+		if v := data.{{ .Name | title }}.ValueString(); v != "" {
+			requestBody["{{ .Name }}"] = v
+		}
 		{{- else if eq .Type "integer" }}
 		requestBody["{{ .Name }}"] = data.{{ .Name | title }}.ValueInt64()
 		{{- else if eq .Type "boolean" }}
@@ -365,7 +367,9 @@ func (r *{{ .Name | title }}Resource) Create(ctx context.Context, req resource.C
 		requestBody["{{ .Name }}"] = data.{{ .Name | title }}.ValueFloat64()
 		{{- else if or (eq .Type "array") (eq .Type "object") }}
 		{{- if $.HasComplexTypes }}
-		requestBody["{{ .Name }}"] = r.convertTFValue(data.{{ .Name | title }})
+		if v := r.convertTFValue(data.{{ .Name | title }}); v != nil {
+			requestBody["{{ .Name }}"] = v
+		}
 		{{- end }}
 		{{- end }}
 	}
@@ -637,9 +641,11 @@ func (r *{{ .Name | title }}Resource) Update(ctx context.Context, req resource.U
 	// Prepare request body
 	requestBody := map[string]interface{}{}
 	{{- range .UpdateFields }}
-	if !data.{{ .Name | title }}.IsNull() {
+	if !data.{{ .Name | title }}.IsNull() && !data.{{ .Name | title }}.IsUnknown() {
 		{{- if eq .Type "string" }}
-		requestBody["{{ .Name }}"] = data.{{ .Name | title }}.ValueString()
+		if v := data.{{ .Name | title }}.ValueString(); v != "" {
+			requestBody["{{ .Name }}"] = v
+		}
 		{{- else if eq .Type "integer" }}
 		requestBody["{{ .Name }}"] = data.{{ .Name | title }}.ValueInt64()
 		{{- else if eq .Type "boolean" }}
@@ -648,7 +654,9 @@ func (r *{{ .Name | title }}Resource) Update(ctx context.Context, req resource.U
 		requestBody["{{ .Name }}"] = data.{{ .Name | title }}.ValueFloat64()
 		{{- else if or (eq .Type "array") (eq .Type "object") }}
 		{{- if $.HasComplexTypes }}
-		requestBody["{{ .Name }}"] = r.convertTFValue(data.{{ .Name | title }})
+		if v := r.convertTFValue(data.{{ .Name | title }}); v != nil {
+			requestBody["{{ .Name }}"] = v
+		}
 		{{- end }}
 		{{- end }}
 	}
@@ -672,7 +680,7 @@ func (r *{{ .Name | title }}Resource) Update(ctx context.Context, req resource.U
 	}
 
 	sourceMap := result
-	{{- template "mapPartialResponseFields" . }}
+	{{- template "mapResponseFields" . }}
 	{{- end }}
 
 	// Save updated data into Terraform state

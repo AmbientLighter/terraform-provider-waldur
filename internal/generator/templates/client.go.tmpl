@@ -58,8 +58,8 @@ func NewClient(config *Config) (*Client, error) {
 
 // doRequest performs an HTTP request with authentication
 func (c *Client) doRequest(ctx context.Context, method, path string, body interface{}) (*http.Response, error) {
-	// Construct full URL
-	fullURL := c.baseURL + path
+	// Construct full URL, avoiding double slashes
+	fullURL := strings.TrimSuffix(c.baseURL, "/") + path
 
 	// Prepare request body
 	var reqBody io.Reader
